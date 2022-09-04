@@ -1,0 +1,43 @@
+---
+- hosts: model-vm 
+  become: yes
+
+  tasks:
+  
+    - name: Install required system packages
+      apt: name={{ item }} state=latest update_cache=yes
+      loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 
+            'software-properties-common', 'python3-pip', 
+            'virtualenv', 'python3-setuptools', 'python3-venv', 'libpq-dev', 'python3-psycopg2']
+    
+    - name: ensure repository key is installed
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: ensure docker registry is available
+      apt_repository: repo='deb https://download.docker.com/linux/ubuntu bionic stable' state=present
+
+    - name: ensure docker and dependencies are installed
+      apt: name=docker-ce update_cache=yes
+
+    - service: name=docker state=restarted
+
+    - name: Install docker-compose from official github repo
+      get_url:
+        url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: 'u+x,g+x'
+
+    - name: Copy model directory
+      ansible.builtin.copy:
+        src: model
+        dest: /app/
+        owner: admin
+        group: sudo
+        mode: u=rwx,g=rx,o=rx
+ 
+    - name: Run model container
+      shell:
+        cmd: "docker-compose up -d"
+        chdir: /app/model/

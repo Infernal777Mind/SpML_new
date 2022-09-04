@@ -1,0 +1,6 @@
+[mlflow-vm]
+mlflow-vm ansible_host=host1 ansible_user=admin
+
+[model-vm]
+model-vm ansible_host=host2 ansible_user=admin
+

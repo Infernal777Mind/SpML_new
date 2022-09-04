@@ -1,0 +1,63 @@
+---
+- hosts: mlflow-vm
+  vars:
+    db_user: mlflow
+    db_name: mlflow
+    db_password: mlflow
+  become: yes
+
+  tasks:  
+    - name: Install required system packages
+      apt: name={{ item }} state=latest update_cache=yes
+      loop: ['bash','openssl','libssl-dev','libssl-doc','postgresql', 'postgresql-contrib', 
+            'postgresql-server-dev-all', 'gcc', 'libpq-dev', 'python3-psycopg2', 'acl', 'python3-pip']
+
+    - name: Ensure the PostgreSQL service is running
+      service: name=postgresql state=started enabled=yes
+    
+    - name: Create the database specified in vars
+      become: true
+      become_user: postgres
+      postgresql_db: name={{ db_name }}
+          template='template0'
+          state=present
+    
+    - name: Ensure user has access to the new database
+      become: true
+      become_user: postgres
+      postgresql_user: db={{ db_name }}
+            name={{ db_user }}
+            password={{ db_password }}
+            priv=ALL
+            state=present
+   
+    - name: Ensure user does not have unnecessary permissions
+      become: true
+      become_user: postgres
+      postgresql_user: name={{ db_user }}
+            role_attr_flags=NOSUPERUSER,NOCREATEDB
+            state=present
+
+    - name: install psycopg2
+      pip:
+        name: 
+          - psycopg2
+          - mlflow
+    
+    - name: Copy file
+      copy:
+        src: ml.service
+        dest: /lib/systemd/system/
+        owner: admin
+        group: sudo
+        mode: u=rwx,g=rx,o=rx
+
+    - name: Just force systemd to re-execute itself (2.8 and above)
+      systemd:
+        daemon_reload: yes
+    
+    - name: Enable mlflow
+      systemd:
+        name: ml
+        state: started
+        enabled: yes

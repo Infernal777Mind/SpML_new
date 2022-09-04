@@ -1,0 +1,10 @@
+terraform
+ansible.cfg
+/.terraform
+.terraform.lock.hcl
+meta.txt
+ML.txt
+MLflowAns.yaml
+terraform.tfstate
+terraform.tfstate.backup
+secret.tfstate
